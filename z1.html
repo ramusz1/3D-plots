@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<body>
+    function <select id = "functionSelect">
+      <option value="x^2">x^2</option>
+      <option value="1/x">1/x</option>
+      <option value="sin(x)">sin(x)</option>
+    </select> 
+    minX <input id="minX" type="number" value="-1"/>
+    maxX <input id="maxX" type="number" value="1"/>
+    minZ <input id="minZ" type="number" value="-1"/>
+    maxZ <input id="maxZ" type="number" value="1"/>
+    <button id="drawButton">Draw!</button>
+  <br>
+  <canvas id="canvas" width="800" height="800" style="border:1px solid #000000;"></canvas>
+  <br>
+</body>
+<script id="vertex_shader" type="notjs">
+
+  attribute vec4 a_position;   
+  uniform mat4 transform;
+  void main() {   
+    gl_Position = transform * a_position;
+  }
+
+</script>
+<script id="fragment_shader" type="notjs">
+
+  precision mediump float;
+  uniform vec4 u_color;
+  void main() {
+    gl_FragColor = u_color; 
+  }
+
+</script>
+<script src="glFunctions.js"></script>
+<script src="math.js"></script>
+<script src="z1.js"></script>
+</html>
