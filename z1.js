@@ -24,6 +24,8 @@ function getPoints(minX,maxX,minZ,maxZ,n,func){
   return {points : points,minY : minY,maxY : maxY};
 }
 
+var rotationStep = Math.PI / 20;
+
 function main() {
 
   var canvas = document.getElementById("canvas");
@@ -32,6 +34,9 @@ function main() {
   if (!gl) {
     return;
   }
+
+  var textCanvas = document.getElementById("text");
+  var textCtx = textCanvas.getContext("2d");
 
   var vertexShaderSource = document.getElementById("vertex_shader").text;
   var fragmentShaderSource = document.getElementById("fragment_shader").text;
@@ -74,8 +79,17 @@ function main() {
   // code above is for initialization
   var transform = [];
   ratio = canvas.height / canvas.width;
-  var perspective = mat.perspective(Math.PI/2.1,2,20,ratio);
+  var perspective = mat.perspective(Math.PI/2.1,2.3,20,ratio);
+
+  var maxX = 1;
+  var maxY = 1;
+  var maxZ = 1;
+
   var redraw = function(){
+
+    // clear text
+    textCtx.clearRect(0, 0, textCtx.canvas.width, textCtx.canvas.height);
+
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0, 0, 0, 0);
@@ -94,6 +108,24 @@ function main() {
     var offset = 0;
     
     var finalTransform = mat.multiply(perspective,transform);
+
+    // calculate text coords
+    write = function(text,x,y,z){
+      let vec = mat.multiplyVector(finalTransform,[x,y,z,1]);
+
+      // gl also divides by fourth element
+      vec[0] /= vec[3];
+      vec[1] /= vec[3];
+
+      // transform from [-1,1] to canvas dimensions
+      vec[0] = (vec[0] + 1) * textCtx.canvas.width / 2;
+      vec[1] = textCtx.canvas.height - (vec[1] + 1) * textCtx.canvas.height / 2 ;
+      textCtx.fillText(text, vec[0],vec[1] );
+    }
+    write("X",maxX,0,0);
+    write("Y",0,maxY,0);
+    write("Z",0,0,maxZ);
+    write("0.0",0,0,0);
 
     drawObject = function( object ){
       // draw ball
@@ -122,15 +154,16 @@ function main() {
   var minZInput = document.getElementById("minZ");
   var maxZInput = document.getElementById("maxZ");
   var init = function(){
+    // maxX,maY,maxZ are used in redraw function to draw text
     let func = functions[funcSel.value];
     let minX = parseInt(minXInput.value);
-    let maxX = parseInt(maxXInput.value);
+    maxX = parseInt(maxXInput.value);
     let minZ = parseInt(minZInput.value);
-    let maxZ = parseInt(maxZInput.value);
+    maxZ = parseInt(maxZInput.value);
     let res = getPoints(minX,maxX,minZ,maxZ,500,func); 
     points.data = res.points;
     let minY = res.minY;
-    let maxY = res.maxY;
+    maxY = res.maxY;
     let midX = (minX + maxX) / 2;
     let midY = (minY + maxY) / 2;
     let midZ = (minZ + maxZ) / 2;
@@ -139,10 +172,8 @@ function main() {
     let k = 1;
     let scale = mat.scale(k * 2/(maxX - minX),k * 2/(maxY - minY),k * 2/(maxZ - minZ));
     transform = mat.multiply(scale,translation);
-    /*
-    let tilt = mat.xRotation(-0.1);
+    let tilt = mat.yRotation(Math.PI/4);
     transform = mat.multiply(tilt,transform)
-    */
     redraw();
   }
   document.getElementById("drawButton").onclick = init;
@@ -155,16 +186,16 @@ function main() {
   const key = event.key;
   switch(key){
     case 'w':
-      transform = mat.multiply( mat.xRotation(0.1) , transform);
+      transform = mat.multiply( mat.xRotation(rotationStep) , transform);
       break;
     case 's':
-      transform = mat.multiply( mat.xRotation(-0.1) , transform);
+      transform = mat.multiply( mat.xRotation(-rotationStep) , transform);
       break;
     case 'a':
-      transform = mat.multiply( mat.yRotation(0.1) , transform);
+      transform = mat.multiply( mat.yRotation(rotationStep) , transform);
       break;
     case 'd':
-      transform = mat.multiply( mat.yRotation(-0.1) , transform);
+      transform = mat.multiply( mat.yRotation(-rotationStep) , transform);
       break;
     case 'q':
       // movement.roll(1);

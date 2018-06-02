@@ -1,17 +1,27 @@
 <!DOCTYPE html>
 <html>
+<head>
+   <link rel="stylesheet" href="styles.css">
+</head>
 <body>
-    function <select id = "functionSelect">
-      <option value="x^2+z^2">x^2+z^2</option>
-      <option value="sin(x)">sin(x)</option>
-    </select> 
-    minX <input id="minX" type="number" value="-1"/>
-    maxX <input id="maxX" type="number" value="1"/>
-    minZ <input id="minZ" type="number" value="-1"/>
-    maxZ <input id="maxZ" type="number" value="1"/>
-    <button id="drawButton">Draw!</button>
   <br>
-  <canvas id="canvas" width="1200" height="900" style="border:1px solid #000000;"></canvas>
+    <div id="controls">
+      function <select id = "functionSelect">
+        <option value="x^2+z^2">x^2+z^2</option>
+        <option value="sin(x)">sin(x)</option>
+      </select> 
+      minX <input id="minX" type="number" value="-1"/>
+      maxX <input id="maxX" type="number" value="1"/>
+      minZ <input id="minZ" type="number" value="-1"/>
+      maxZ <input id="maxZ" type="number" value="1"/>
+      <button id="drawButton">Draw!</button>
+    </div>
+
+  <container>
+    <canvas id="canvas" width="1200" height="900" style="border:1px solid #000000;"></canvas>
+    <canvas id="text" width="1200" height="900" style="border:1px solid #000000;"></canvas>
+  </container>
+
   <br>
 </body>
 <script id="vertex_shader" type="notjs">
