@@ -70,7 +70,7 @@ function main() {
   points.dims = 3;
   points.primitive = gl.POINTS;
   points.buff = gl.createBuffer();
-  points.color = [0.7,0.3,0.3,0.7];
+  points.color = [0.7,0.3,0.3,0.9];
 
   const positionLocation = gl.getAttribLocation(program,'a_position');
   const transformLocation = gl.getUniformLocation(program,'transform');
@@ -147,6 +147,7 @@ function main() {
   var functions = {};
   functions["x^2+z^2"] = function(x,y){return x*x + y * y};
   functions["sin(x)"] = function(x,y){return Math.sin(x)};
+  functions["cos(x^2+z^2)"] = function(x,y){return Math.cos(x*x + y*y)};
 
   var funcSel = document.getElementById("functionSelect");
   var minXInput = document.getElementById("minX");
