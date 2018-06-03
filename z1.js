@@ -5,8 +5,9 @@ function getPoints(minX,maxX,minZ,maxZ,n,func){
   let stepZ = (maxZ - minZ) / n;
   let minY = Number.MAX_VALUE;
   let maxY = -Number.MAX_VALUE;
-  for(let x = 0; x < n; x ++){
-    for(let z = 0; z < n ; z ++ ){
+  let dirZ = 1
+  for(let x = 0; x < n; x += 2){
+    add = function(x,z){
       let realX = x * stepX + minX;
       let realZ = z * stepZ + minZ;
       let y = func(realX,realZ);
@@ -20,11 +21,20 @@ function getPoints(minX,maxX,minZ,maxZ,n,func){
       points.push(y);
       points.push(realZ);
     }
+    for(let z = 0; z < n ; z ++){
+      add(x,z);
+      add(x+1,z);
+    }
+    for(let z = n - 1; z >= 0 ; z--){
+      add(x+1,z);
+      add(x+2,z);
+    }
   }
   return {points : points,minY : minY,maxY : maxY};
 }
 
 var rotationStep = Math.PI / 20;
+var sampleCount = 500;
 
 function main() {
 
@@ -64,22 +74,26 @@ function main() {
   coordsSys.primitive = gl.LINES;
   coordsSys.buff = gl.createBuffer();
   coordsSys.color = [0,0,0,1];
+  coordsSys.fading = 0.0;
+
 
   var points = {};
   points.data = [];
   points.dims = 3;
-  points.primitive = gl.POINTS;
+  points.primitive = gl.TRIANGLE_STRIP;
   points.buff = gl.createBuffer();
-  points.color = [0.7,0.3,0.3,0.9];
+  points.color = [0.7,0.3,0.3,1];
+  points.fading = 1.1;
 
   const positionLocation = gl.getAttribLocation(program,'a_position');
   const transformLocation = gl.getUniformLocation(program,'transform');
   const colorLocation = gl.getUniformLocation(program, "u_color");
+  const fadingLocation = gl.getUniformLocation(program, "u_fading");
 
   // code above is for initialization
   var transform = [];
   ratio = canvas.height / canvas.width;
-  var perspective = mat.perspective(Math.PI/2.1,2.3,20,ratio);
+  var perspective = mat.perspective(Math.PI/2.1,2.6,20,ratio);
 
   var maxX = 1;
   var maxY = 1;
@@ -93,11 +107,14 @@ function main() {
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.enable( gl.DEPTH_TEST);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
+    // 3d
+    gl.disable( gl.DEPTH_TEST);
+
+    // colors fading
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     gl.useProgram(program);
 
@@ -136,6 +153,7 @@ function main() {
       gl.enableVertexAttribArray(positionLocation);
       gl.uniformMatrix4fv(transformLocation, false, finalTransform);
       gl.uniform4fv(colorLocation, object.color);
+      gl.uniform1f(fadingLocation, object.fading);
       gl.drawArrays(object.primitive, 0, object.data.length / object.dims);
     }
 
@@ -161,10 +179,10 @@ function main() {
     maxX = parseInt(maxXInput.value);
     let minZ = parseInt(minZInput.value);
     maxZ = parseInt(maxZInput.value);
-    let res = getPoints(minX,maxX,minZ,maxZ,500,func); 
+    let res = getPoints(minX,maxX,minZ,maxZ,sampleCount,func); 
     points.data = res.points;
-    let minY = res.minY;
-    maxY = res.maxY;
+    let minY = res.minY - 1;
+    maxY = res.maxY + 1;
     let midX = (minX + maxX) / 2;
     let midY = (minY + maxY) / 2;
     let midZ = (minZ + maxZ) / 2;
@@ -198,11 +216,8 @@ function main() {
     case 'd':
       transform = mat.multiply( mat.yRotation(-rotationStep) , transform);
       break;
-    case 'q':
-      // movement.roll(1);
-      break;
-    case 'e':
-      // movement.roll(-1);
+    case 'r':
+      init();
       break;
     case ' ':
       // movement.forward();
