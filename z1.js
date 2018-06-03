@@ -1,6 +1,6 @@
 
-function getPoints(minX,maxX,minZ,maxZ,n,func){
-  let points = [];
+function getSurface(minX,maxX,minZ,maxZ,n,func){
+  let surface = [];
   let stepX = (maxX - minX) / n;
   let stepZ = (maxZ - minZ) / n;
   let minY = Number.MAX_VALUE;
@@ -17,9 +17,9 @@ function getPoints(minX,maxX,minZ,maxZ,n,func){
       if (minY > y) {
         minY = y;
       }
-      points.push(realX);
-      points.push(y);
-      points.push(realZ);
+      surface.push(realX);
+      surface.push(y);
+      surface.push(realZ);
     }
     for(let z = 0; z < n ; z ++){
       add(x,z);
@@ -30,8 +30,39 @@ function getPoints(minX,maxX,minZ,maxZ,n,func){
       add(x+2,z);
     }
   }
-  return {points : points,minY : minY,maxY : maxY};
+  return {surface : surface,minY : minY,maxY : maxY};
 }
+
+
+function getPoints(minX,maxX,minZ,maxZ,n,func){
+  let surface = [];
+  let stepX = (maxX - minX) / n;
+  let stepZ = (maxZ - minZ) / n;
+  let minY = Number.MAX_VALUE;
+  let maxY = -Number.MAX_VALUE;
+  let dirZ = 1
+  for(let x = 0; x < n; x ++){
+    add = function(x,z){
+      let realX = x * stepX + minX;
+      let realZ = z * stepZ + minZ;
+      let y = func(realX,realZ);
+      if (maxY < y) {
+        maxY = y;
+      }
+      if (minY > y) {
+        minY = y;
+      }
+      surface.push(realX);
+      surface.push(y);
+      surface.push(realZ);
+    }
+    for(let z = 0; z < n ; z ++){
+      add(x,z);
+    }
+  }
+  return {surface : surface,minY : minY,maxY : maxY};
+}
+
 
 var rotationStep = Math.PI / 20;
 var sampleCount = 500;
@@ -77,13 +108,13 @@ function main() {
   coordsSys.fading = 0.0;
 
 
-  var points = {};
-  points.data = [];
-  points.dims = 3;
-  points.primitive = gl.TRIANGLE_STRIP;
-  points.buff = gl.createBuffer();
-  points.color = [0.7,0.3,0.3,1];
-  points.fading = 1.1;
+  var surface = {};
+  surface.data = [];
+  surface.dims = 3;
+  surface.primitive = gl.TRIANGLE_STRIP;
+  surface.buff = gl.createBuffer();
+  surface.color = [0.7,0.3,0.3,1];
+  surface.fading = 1.1;
 
   const positionLocation = gl.getAttribLocation(program,'a_position');
   const transformLocation = gl.getUniformLocation(program,'transform');
@@ -157,8 +188,8 @@ function main() {
       gl.drawArrays(object.primitive, 0, object.data.length / object.dims);
     }
 
+    drawObject(surface);
     drawObject(coordsSys);
-    drawObject(points);
 
   }
 
@@ -167,6 +198,7 @@ function main() {
   functions["sin(x)"] = function(x,y){return Math.sin(x)};
   functions["cos(x^2+z^2)"] = function(x,y){return Math.cos(x*x + y*y)};
 
+  var styleSel = document.getElementById("styleSelect");
   var funcSel = document.getElementById("functionSelect");
   var minXInput = document.getElementById("minX");
   var maxXInput = document.getElementById("maxX");
@@ -179,8 +211,17 @@ function main() {
     maxX = parseInt(maxXInput.value);
     let minZ = parseInt(minZInput.value);
     maxZ = parseInt(maxZInput.value);
-    let res = getPoints(minX,maxX,minZ,maxZ,sampleCount,func); 
-    points.data = res.points;
+
+    let res; 
+    if( styleSelect.value == "points" ){
+      res = getPoints(minX,maxX,minZ,maxZ,sampleCount,func); 
+      surface.primitive = gl.POINTS;
+    } else {
+      res = getSurface(minX,maxX,minZ,maxZ,sampleCount,func); 
+      surface.primitive = gl.TRIANGLE_STRIP;
+    }
+    surface.data = res.surface;
+
     let minY = res.minY - 1;
     maxY = res.maxY + 1;
     let midX = (minX + maxX) / 2;
@@ -232,4 +273,4 @@ function main() {
 }
 
 main();
-// getPoints(-1,1,-1,1,3,function(x,y){return x*x + y*y;});
+// getSurface(-1,1,-1,1,3,function(x,y){return x*x + y*y;});
