@@ -118,6 +118,43 @@ var mat = {
       out[i] = a[i] + b[i];
     }
     return out;
+  },
+
+  // return vectro normal to triangle surface
+  // a,b,c are points from R^3
+  normal : function(a,b,c){
+    // triangle a,b,c
+    substr = function(y,x){
+      return [y[0] - x[0],y[1] - x[1],y[2] - x[2]];
+    }
+    let U = substr(b,a);
+    let V = substr(c,a);
+    /*
+      Nx = UyVz - UzVy
+      Ny = UzVx - UxVz
+      Nz = UxVy - UyVx
+    */
+    N = [
+      U[1]*V[2] - U[2]*V[1],
+      U[2]*V[0] - U[0]*V[2],
+      U[0]*V[1] - U[1]*V[0]
+    ];
+    return mat.normalize(N);
+  },
+
+  // normalize 3d vector
+  normalize : function(x){
+
+    let length = Math.sqrt(
+      x[0] ** 2 
+      + x[1] ** 2
+      + x[2] ** 2 );
+    if( Math.abs(length) < 0.000001 ){
+      return [1,0,0];
+    }
+    return [x[0] / length,
+            x[1] / length, 
+            x[2] / length]
   }
 
 };

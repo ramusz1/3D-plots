@@ -19,6 +19,7 @@
       maxX <input id="maxX" type="number" value="2"/>
       minZ <input id="minZ" type="number" value="-2"/>
       maxZ <input id="maxZ" type="number" value="2"/>
+      ambient strength  <input type="range" min="0" max="1" value="0" class="slider" id="ambientRange" step="0.05">
       <button id="drawButton">Draw!</button>
     </div>
 
@@ -32,9 +33,14 @@
 <script id="vertex_shader" type="notjs">
 
   attribute vec4 a_position;   
+  attribute vec4 a_normal;   
   uniform mat4 transform;
+  varying vec3 v_transformedNormal;
+
   void main() {   
     gl_Position = transform * a_position;
+    v_transformedNormal = normalize(vec3(transform * a_normal));
+    // v_transformedNormal = normalize(vec3(a_normal));
   }
 
 </script>
@@ -43,9 +49,23 @@
   precision mediump float;
   uniform vec4 u_color;
   uniform float u_fading;
+  uniform float u_ambientStrength;
+  varying vec3 v_transformedNormal;
+
   void main() {
     // further points are less visible
-    gl_FragColor = vec4(vec3(u_color), 1.0 - u_fading * gl_FragCoord[2]);
+    vec4 color = vec4(vec3(u_color), 1.0 - u_fading * gl_FragCoord[2]);
+
+    // vec3 lightPos = vec3(1,1,1);
+    vec3 lightDir = normalize( vec3(0,1,-1) ); // vec3(gl_FragCoord) - lightPos;
+    float diff = dot(v_transformedNormal, lightDir);
+
+    vec3 lightColor = vec3(1,1,1);
+
+    vec4 ambient = vec4( u_ambientStrength * lightColor,1);
+    vec4 diffuse = vec4( diff * lightColor,1);
+    gl_FragColor = (ambient + diffuse) *  color;
+
   }
 
 </script>

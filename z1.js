@@ -1,4 +1,57 @@
 
+function getSurfaceT(minX,maxX,minZ,maxZ,n,func){
+  let surface = [];
+  let normals = [];
+  let stepX = (maxX - minX) / n;
+  let stepZ = (maxZ - minZ) / n;
+  let minY = Number.MAX_VALUE;
+  let maxY = -Number.MAX_VALUE;
+  let dirZ = 1
+
+  /*
+    concat was slow for some reason or I had a bug
+  */
+  for(let x = 0; x < n; x ++){
+    add = function(x,z){
+      let realX = x * stepX + minX;
+      let realZ = z * stepZ + minZ;
+      let y = func(realX,realZ);
+      if (maxY < y) {
+        maxY = y;
+      }
+      if (minY > y) {
+        minY = y;
+      }
+      surface.push(realX);
+      surface.push(y);
+      surface.push(realZ);
+      return [realX,y,realZ];
+    }
+    addNormal = function(){
+      let norm = mat.normal(
+              triangle[0],triangle[1],triangle[2]);
+      for(let j = 0; j < 3; j ++){
+        for(let k = 0 ;  k < 3 ; k++ ){
+          normals.push(norm[k]);
+        }
+      }
+    }
+    for(let z = 0; z < n ; z ++){
+      triangle = [];
+      triangle.push( add(x+1, z) );
+      triangle.push( add(x, z) );
+      triangle.push( add(x, z+1) );
+      addNormal(triangle);
+      triangle = [];
+      triangle.push( add(x+1, z) );
+      triangle.push( add(x, z+1) );
+      triangle.push( add(x+1, z+1) );
+      addNormal(triangle);
+    }
+  }
+  return {surface : surface, normals : normals, minY : minY,maxY : maxY};
+}
+
 function getSurface(minX,maxX,minZ,maxZ,n,func){
   let surface = [];
   let stepX = (maxX - minX) / n;
@@ -6,6 +59,10 @@ function getSurface(minX,maxX,minZ,maxZ,n,func){
   let minY = Number.MAX_VALUE;
   let maxY = -Number.MAX_VALUE;
   let dirZ = 1
+
+  /*
+    concat was slow for some reason or I had a bug
+  */
   for(let x = 0; x < n; x += 2){
     add = function(x,z){
       let realX = x * stepX + minX;
@@ -30,7 +87,38 @@ function getSurface(minX,maxX,minZ,maxZ,n,func){
       add(x+2,z);
     }
   }
-  return {surface : surface,minY : minY,maxY : maxY};
+
+  let normals = [];
+
+  getNormal = function(i){
+    // take last 3 points
+    let triangle = [];
+    for(let j = -3 ; j >= -9; j -= 3 ){
+      triangle.push(surface.slice(i + j, i + j + 3) );
+    }
+    let norm = mat.normal(
+              triangle[0],triangle[1],triangle[2]);
+    return norm;
+  };
+
+  // first 3 points get the same normal
+  {
+    let norm = getNormal(9);
+    for(let j = 0 ; j < 3 ; j ++ ){
+      for(let k = 0; k < 3; k ++){
+        normals.push(norm[k]);
+      }
+    }
+  } 
+  // take last 3 points
+  for(let i = 12 ; i <= surface.length; i += 3){
+    let norm = getNormal(i);
+    // push normal for every point
+    for(let j = 0; j < 3; j ++){
+      normals.push(norm[j]);
+    }
+  }
+  return {surface : surface, normals : normals, minY : minY,maxY : maxY};
 }
 
 
@@ -100,26 +188,46 @@ function main() {
       midX,maxY,midZ,
       midX,midY,minZ,
       midX,midY,maxZ ];
+    coordsSys.length = coordsSys.data.length;
+    gl.bindBuffer(gl.ARRAY_BUFFER, coordsSys.buff );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(coordsSys.data), gl.STATIC_DRAW);
   }
   coordsSys.dims = 3;
   coordsSys.primitive = gl.LINES;
   coordsSys.buff = gl.createBuffer();
+
   coordsSys.color = [0,0,0,1];
   coordsSys.fading = 0.0;
+  coordsSys.ambientStrength = 0.0;
+  coordsSys.normalsData = [
+    1.0,0.0,0.0,
+    1.0,0.0,0.0,
+    1.0,0.0,0.0,
+    1.0,0.0,0.0,
+    1.0,0.0,0.0,
+    1.0,0.0,0.0
+  ];
 
+  coordsSys.normalsBuff = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, coordsSys.normalsBuff );
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(coordsSys.normalsData), gl.STATIC_DRAW);
 
   var surface = {};
-  surface.data = [];
   surface.dims = 3;
   surface.primitive = gl.TRIANGLE_STRIP;
   surface.buff = gl.createBuffer();
   surface.color = [0.7,0.3,0.3,1];
-  surface.fading = 1.1;
+  surface.fading = 0.0;
+  surface.ambientStrength = 0.1;
+  surface.normalsBuff = gl.createBuffer();
+
 
   const positionLocation = gl.getAttribLocation(program,'a_position');
+  const normalLocation = gl.getAttribLocation(program,'a_normal');
   const transformLocation = gl.getUniformLocation(program,'transform');
   const colorLocation = gl.getUniformLocation(program, "u_color");
   const fadingLocation = gl.getUniformLocation(program, "u_fading");
+  const ambientStrengthLocation = gl.getUniformLocation(program, "u_ambientStrength");
 
   // code above is for initialization
   var transform = [];
@@ -141,11 +249,13 @@ function main() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
     // 3d
-    gl.disable( gl.DEPTH_TEST);
+    gl.enable( gl.DEPTH_TEST);
 
     // colors fading
-    gl.enable(gl.BLEND);
+    gl.disable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    gl.disable(gl.CULL_FACE);
 
     gl.useProgram(program);
 
@@ -156,7 +266,6 @@ function main() {
     var offset = 0;
     
     var finalTransform = mat.multiply(perspective,transform);
-
     // calculate text coords
     write = function(text,x,y,z){
       let vec = mat.multiplyVector(finalTransform,[x,y,z,1]);
@@ -178,17 +287,24 @@ function main() {
     drawObject = function( object ){
       // draw ball
       gl.bindBuffer(gl.ARRAY_BUFFER, object.buff );
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(object.data), gl.STATIC_DRAW);
       gl.vertexAttribPointer(
           positionLocation, size, type, normalize, stride, offset)
       gl.enableVertexAttribArray(positionLocation);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, object.normalsBuff );
+      gl.vertexAttribPointer(
+          normalLocation, size, type, false, stride, offset)
+      gl.enableVertexAttribArray(normalLocation);
+
       gl.uniformMatrix4fv(transformLocation, false, finalTransform);
       gl.uniform4fv(colorLocation, object.color);
       gl.uniform1f(fadingLocation, object.fading);
-      gl.drawArrays(object.primitive, 0, object.data.length / object.dims);
+      gl.uniform1f(ambientStrengthLocation, object.ambientStrength);
+      gl.drawArrays(object.primitive, 0, object.length / object.dims);
     }
 
     drawObject(surface);
+    gl.disable( gl.DEPTH_TEST);
     drawObject(coordsSys);
 
   }
@@ -204,6 +320,7 @@ function main() {
   var maxXInput = document.getElementById("maxX");
   var minZInput = document.getElementById("minZ");
   var maxZInput = document.getElementById("maxZ");
+  var ambientRange = document.getElementById("ambientRange");
   var init = function(){
     // maxX,maY,maxZ are used in redraw function to draw text
     let func = functions[funcSel.value];
@@ -212,15 +329,18 @@ function main() {
     let minZ = parseInt(minZInput.value);
     maxZ = parseInt(maxZInput.value);
 
-    let res; 
-    if( styleSelect.value == "points" ){
-      res = getPoints(minX,maxX,minZ,maxZ,sampleCount,func); 
-      surface.primitive = gl.POINTS;
-    } else {
-      res = getSurface(minX,maxX,minZ,maxZ,sampleCount,func); 
-      surface.primitive = gl.TRIANGLE_STRIP;
-    }
-    surface.data = res.surface;
+    let res = getSurfaceT(minX,maxX,minZ,maxZ,sampleCount,func); 
+    surface.primitive = gl.TRIANGLES;
+    surface.normalsData = res.normals;
+    surface.length = res.surface.length;
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, surface.buff );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(res.surface), gl.STATIC_DRAW);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, surface.normalsBuff );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(res.normals), gl.STATIC_DRAW);
+
+
 
     let minY = res.minY - 1;
     maxY = res.maxY + 1;
@@ -234,6 +354,9 @@ function main() {
     transform = mat.multiply(scale,translation);
     let tilt = mat.yRotation(Math.PI/4);
     transform = mat.multiply(tilt,transform)
+
+    surface.ambientStrength = ambientRange.value;
+
     redraw();
   }
   document.getElementById("drawButton").onclick = init;
@@ -272,5 +395,27 @@ function main() {
 }, false);
 }
 
+
+// MAT TESTS
+/*
+console.log(mat.normalize([1,0,0]) )
+console.log(mat.normalize([0,1,0]) )
+console.log(mat.normalize([0,0,1]) )
+console.log(mat.normalize([1/1.41,0,1/1.41]) )
+console.log(mat.normalize([2,0,0]) )
+console.log(mat.normalize([2,0,2]) )
+console.log(mat.normalize([6,0,2]) )
+var A = [1,2,3];
+var B = [6,0,3];
+var C = [5,-8,3];
+console.log(mat.normal(A,B,C));
+console.log(mat.normal(A,C,B));
+console.log(mat.normal(B,C,A));
+console.log(mat.normal(B,A,C));
+console.log(mat.normal(C,A,B));
+console.log(mat.normal(C,B,A));
+*/
+
+
+
 main();
-// getSurface(-1,1,-1,1,3,function(x,y){return x*x + y*y;});
