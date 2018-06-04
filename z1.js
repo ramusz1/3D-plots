@@ -154,6 +154,7 @@ function getPoints(minX,maxX,minZ,maxZ,n,func){
 
 var rotationStep = Math.PI / 20;
 var sampleCount = 500;
+var maxFading = 2;
 
 function main() {
 
@@ -217,7 +218,7 @@ function main() {
   surface.primitive = gl.TRIANGLE_STRIP;
   surface.buff = gl.createBuffer();
   surface.color = [0.7,0.3,0.3,1];
-  surface.fading = 0.0;
+  surface.fading = 0;
   surface.ambientStrength = 0.1;
   surface.normalsBuff = gl.createBuffer();
 
@@ -320,6 +321,7 @@ function main() {
   var maxXInput = document.getElementById("maxX");
   var minZInput = document.getElementById("minZ");
   var maxZInput = document.getElementById("maxZ");
+  var fadingRange = document.getElementById("fadingRange");
   var ambientRange = document.getElementById("ambientRange");
   var init = function(){
     // maxX,maY,maxZ are used in redraw function to draw text
@@ -328,22 +330,26 @@ function main() {
     maxX = parseInt(maxXInput.value);
     let minZ = parseInt(minZInput.value);
     maxZ = parseInt(maxZInput.value);
+    if( styleSel.value == "points"){
+      surface.primitive = gl.POINTS;
+    } else {
+      surface.primitive = gl.TRIANGLES;
+    }
 
-    let res = getSurfaceT(minX,maxX,minZ,maxZ,sampleCount,func); 
-    surface.primitive = gl.TRIANGLES;
-    surface.normalsData = res.normals;
-    surface.length = res.surface.length;
+    let graph = getSurfaceT(minX,maxX,minZ,maxZ,sampleCount,func); 
+    surface.normalsData = graph.normals;
+    surface.length = graph.surface.length;
 
     gl.bindBuffer(gl.ARRAY_BUFFER, surface.buff );
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(res.surface), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(graph.surface), gl.STATIC_DRAW);
     
     gl.bindBuffer(gl.ARRAY_BUFFER, surface.normalsBuff );
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(res.normals), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(graph.normals), gl.STATIC_DRAW);
 
 
 
-    let minY = res.minY - 1;
-    maxY = res.maxY + 1;
+    let minY = graph.minY - 1;
+    maxY = graph.maxY + 1;
     let midX = (minX + maxX) / 2;
     let midY = (minY + maxY) / 2;
     let midZ = (minZ + maxZ) / 2;
@@ -355,7 +361,12 @@ function main() {
     let tilt = mat.yRotation(Math.PI/4);
     transform = mat.multiply(tilt,transform)
 
+    // set ambient strength
     surface.ambientStrength = ambientRange.value;
+
+    // set fading 
+    surface.fading = maxFading * fadingRange.value;
+
 
     redraw();
   }
