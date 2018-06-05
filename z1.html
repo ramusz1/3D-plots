@@ -53,11 +53,11 @@
   varying vec3 v_transformedNormal;
 
   void main() {
-    // further points are less visible
+    // more distant points are less visible
     vec4 color = vec4(vec3(u_color), 1.0 - u_fading * gl_FragCoord[2]);
 
-    // vec3 lightPos = vec3(1,1,1);
-    vec3 lightDir = normalize( vec3(1,1,-1) ); // vec3(gl_FragCoord) - lightPos;
+    // light
+    vec3 lightDir = normalize( vec3(1,1,-1) ); 
     float diff = max(dot(v_transformedNormal, lightDir),0.0);
 
     vec3 lightColor = vec3(1,1,1);

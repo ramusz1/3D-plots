@@ -1,5 +1,5 @@
 
-function getSurfaceT(minX,maxX,minZ,maxZ,n,func){
+function getSurface(minX,maxX,minZ,maxZ,n,func){
   let surface = [];
   let normals = [];
   let stepX = (maxX - minX) / n;
@@ -51,106 +51,6 @@ function getSurfaceT(minX,maxX,minZ,maxZ,n,func){
   }
   return {surface : surface, normals : normals, minY : minY,maxY : maxY};
 }
-
-function getSurface(minX,maxX,minZ,maxZ,n,func){
-  let surface = [];
-  let stepX = (maxX - minX) / n;
-  let stepZ = (maxZ - minZ) / n;
-  let minY = Number.MAX_VALUE;
-  let maxY = -Number.MAX_VALUE;
-  let dirZ = 1
-
-  /*
-    concat was slow for some reason or I had a bug
-  */
-  for(let x = 0; x < n; x += 2){
-    add = function(x,z){
-      let realX = x * stepX + minX;
-      let realZ = z * stepZ + minZ;
-      let y = func(realX,realZ);
-      if (maxY < y) {
-        maxY = y;
-      }
-      if (minY > y) {
-        minY = y;
-      }
-      surface.push(realX);
-      surface.push(y);
-      surface.push(realZ);
-    }
-    for(let z = 0; z < n ; z ++){
-      add(x,z);
-      add(x+1,z);
-    }
-    for(let z = n - 1; z >= 0 ; z--){
-      add(x+1,z);
-      add(x+2,z);
-    }
-  }
-
-  let normals = [];
-
-  getNormal = function(i){
-    // take last 3 points
-    let triangle = [];
-    for(let j = -3 ; j >= -9; j -= 3 ){
-      triangle.push(surface.slice(i + j, i + j + 3) );
-    }
-    let norm = mat.normal(
-              triangle[0],triangle[1],triangle[2]);
-    return norm;
-  };
-
-  // first 3 points get the same normal
-  {
-    let norm = getNormal(9);
-    for(let j = 0 ; j < 3 ; j ++ ){
-      for(let k = 0; k < 3; k ++){
-        normals.push(norm[k]);
-      }
-    }
-  } 
-  // take last 3 points
-  for(let i = 12 ; i <= surface.length; i += 3){
-    let norm = getNormal(i);
-    // push normal for every point
-    for(let j = 0; j < 3; j ++){
-      normals.push(norm[j]);
-    }
-  }
-  return {surface : surface, normals : normals, minY : minY,maxY : maxY};
-}
-
-
-function getPoints(minX,maxX,minZ,maxZ,n,func){
-  let surface = [];
-  let stepX = (maxX - minX) / n;
-  let stepZ = (maxZ - minZ) / n;
-  let minY = Number.MAX_VALUE;
-  let maxY = -Number.MAX_VALUE;
-  let dirZ = 1
-  for(let x = 0; x < n; x ++){
-    add = function(x,z){
-      let realX = x * stepX + minX;
-      let realZ = z * stepZ + minZ;
-      let y = func(realX,realZ);
-      if (maxY < y) {
-        maxY = y;
-      }
-      if (minY > y) {
-        minY = y;
-      }
-      surface.push(realX);
-      surface.push(y);
-      surface.push(realZ);
-    }
-    for(let z = 0; z < n ; z ++){
-      add(x,z);
-    }
-  }
-  return {surface : surface,minY : minY,maxY : maxY};
-}
-
 
 var rotationStep = Math.PI / 20;
 var sampleCount = 500;
@@ -336,7 +236,7 @@ function main() {
       surface.primitive = gl.TRIANGLES;
     }
 
-    let graph = getSurfaceT(minX,maxX,minZ,maxZ,sampleCount,func); 
+    let graph = getSurface(minX,maxX,minZ,maxZ,sampleCount,func); 
     surface.normalsData = graph.normals;
     surface.length = graph.surface.length;
 
