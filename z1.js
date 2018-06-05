@@ -37,15 +37,15 @@ function getSurface(minX,maxX,minZ,maxZ,n,func){
       }
     }
     for(let z = 0; z < n ; z ++){
-      triangle = [];
-      triangle.push( add(x+1, z) );
-      triangle.push( add(x, z) );
-      triangle.push( add(x, z+1) );
+      triangle = [
+        add(x+1, z),
+        add(x, z),
+        add(x, z+1) ];
       addNormal(triangle);
-      triangle = [];
-      triangle.push( add(x+1, z) );
-      triangle.push( add(x, z+1) );
-      triangle.push( add(x+1, z+1) );
+      triangle = [
+        add(x+1, z),
+        add(x, z+1),
+        add(x+1, z+1) ];
       addNormal(triangle);
     }
   }
